@@ -7,7 +7,9 @@
 
   "assets": {
     "binding": "ASSETS",
-    "directory": "./public"
+    "directory": "./public",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": true
   },
 
   "vars": {
@@ -17,15 +19,14 @@
     "ENVIRONMENT": "production"
   },
 
-  "containers": [
-    {
-      "binding": "KANBAN_SERVICE",
-      "image": "cline/kanban:latest",
-      "port": 3484,
-      "cpu": 2,
-      "memory": "4GB"
-    }
-  ],
+  "containers": {
+    "binding": "KANBAN_SERVICE",
+    "image": "ghcr.io/cline/kanban:latest",
+    "port": 3484,
+    "vcpu": 2,
+    "memory": "4 GB",
+    "disk": "20 GB"
+  },
 
   "d1_databases": [
     {
@@ -39,14 +40,6 @@
     {
       "binding": "KANBAN_KV",
       "id": ""
-    }
-  ],
-
-  "routes": [
-    {
-      "pattern": "kanban.clinebox.dev",
-      "zone_name": "clinebox.dev",
-      "custom_domain": true
     }
   ]
 }
