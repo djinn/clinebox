@@ -21,12 +21,11 @@
 
   "containers": {
     "binding": "KANBAN_SERVICE",
-    "image": "./Dockerfile",
+    "image": "ghcr.io/djinn/clinebox-kanban:latest",
     "port": 3484,
     "vcpu": 2,
     "memory": "4 GB",
-    "disk": "20 GB",
-    "entrypoint": ["node", "dist/cli.js", "--host", "0.0.0.0", "--no-passcode", "--no-open", "--skip-shutdown-cleanup"]
+    "disk": "20 GB"
   },
 
   "d1_databases": [
