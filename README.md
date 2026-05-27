@@ -1,6 +1,6 @@
 # Cline Kanban — Cloudflare Deploy
 
-[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/cline/kanban)
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/djinn/clinebox)
 
 One-click deployment of [Cline Kanban](https://github.com/cline/kanban) on Cloudflare Containers.
 
@@ -8,24 +8,36 @@ One-click deployment of [Cline Kanban](https://github.com/cline/kanban) on Cloud
 
 A web app that runs CLI coding agents in parallel. Each task card gets its own terminal and git worktree. Link cards together for autonomous dependency chains with auto-commit.
 
-> **npx kanban** — A replacement for your IDE better suited for running many agents in parallel and reviewing diffs.
+## Architecture
 
-[Learn more →](https://github.com/cline/kanban)
-
----
+```
+User Browser ──► Cloudflare Worker (gateway, auth, proxy)
+                       │
+                       ▼
+                Cloudflare Container (Kanban server: port 3484)
+                       │
+                  ┌────┴────┐
+                  │         │
+             tRPC API    Web UI (React SPA)
+                         WebSocket (terminal I/O)
+```
 
 ## Deploy
 
 Click the button above. You will need:
 
-- A [Cloudflare account](https://dash.cloudflare.com/signup) with **Workers Paid Plan** and **Containers beta** access
+- Cloudflare account with **Workers Paid Plan** and **Containers beta** access
 - A [GitHub OAuth App](https://github.com/settings/developers) for login
-  - **Authorization callback URL**: `https://{your-worker}.workers.dev/api/auth/github/callback`
+  - Authorization callback: `https://{your-worker}.workers.dev/api/auth/github/callback`
 
-Cloudflare automatically clones the repo, provisions resources, and deploys the stack.
+## Files
 
----
+| File | Purpose |
+|------|---------|
+| `src/index.ts` | Cloudflare Worker — auth gateway, rate limiting, proxy to container |
+| `public/index.html` | Landing page shown while Kanban provisions |
+| `wrangler.jsonc` | Cloudflare config — container, D1, KV, assets |
 
 ## License
 
-Apache-2.0 — same as [Cline Kanban](https://github.com/cline/kanban).
+Apache-2.0
