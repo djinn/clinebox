@@ -47,10 +47,10 @@ async function proxyToKanban(request: Request, env: Env): Promise<Response> {
     return await env.KANBAN_SERVICE.fetch(upstream);
   } catch (err) {
     console.error('Proxy error:', err);
-    return new Response(JSON.stringify({ error: 'Kanban container is not running. It may still be provisioning.' }), {
-      status: 502,
-      headers: { 'Content-Type': 'application/json', ...CORS_HEADERS },
-    });
+    return new Response(
+      JSON.stringify({ error: 'Kanban container is not running. It may still be provisioning.' }),
+      { status: 502, headers: { 'Content-Type': 'application/json', ...CORS_HEADERS } },
+    );
   }
 }
 
@@ -66,7 +66,7 @@ async function validateSession(kv: KVNamespace, token: string): Promise<boolean>
 
 async function createSession(kv: KVNamespace, userId: string): Promise<string> {
   const token = crypto.randomUUID();
-  await kv.put('session:' + token, JSON.stringify({ userId, token, expiresAt: Date.now() + 86400000 }), {
+  await kv.put('session:' + token, JSON.stringify({ userId: userId, token: token, expiresAt: Date.now() + 86400000 }), {
     expirationTtl: 86400,
   });
   return token;
@@ -96,10 +96,12 @@ export default {
     const url = new URL(request.url);
     const pathname = url.pathname;
 
+    // CORS preflight
     if (request.method === 'OPTIONS') {
       return new Response(null, { status: 204, headers: CORS_HEADERS });
     }
 
+    // Health check - handled directly
     if (request.method === 'GET' && pathname === '/api/health') {
       return new Response(
         JSON.stringify({
@@ -112,6 +114,7 @@ export default {
       );
     }
 
+    // GitHub OAuth login - handled directly
     if (pathname === '/api/auth/github/login') {
       const state = crypto.randomUUID();
       const gh = new URL('https://github.com/login/oauth/authorize');
@@ -123,11 +126,11 @@ export default {
       return Response.redirect(gh.toString(), 302);
     }
 
+    // GitHub OAuth callback - handled directly
     if (pathname === '/api/auth/github/callback') {
       const code = url.searchParams.get('code');
       const state = url.searchParams.get('state');
       if (!code || !state) return new Response('Missing params', { status: 400 });
-
       const storedState = await env.KANBAN_KV.get('oauth:state:' + state);
       if (!storedState) return new Response('Invalid state', { status: 400 });
       await env.KANBAN_KV.delete('oauth:state:' + state);
@@ -159,6 +162,7 @@ export default {
       });
     }
 
+    // Session check - handled directly
     if (pathname === '/api/auth/session') {
       const cookie = request.headers.get('Cookie') || '';
       const match = cookie.match(/kanban_session=([^;]+)/);
@@ -175,6 +179,7 @@ export default {
       });
     }
 
+    // Rate limiting for other API routes, then proxy to Kanban
     if (pathname.startsWith('/api/')) {
       const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
       const result = await checkRateLimit(env.KANBAN_KV, 'worker:' + ip, 200, 60);
@@ -190,19 +195,32 @@ export default {
       return new Response(response.body, { status: response.status, headers: h });
     }
 
+    // WebSocket upgrade - proxy directly
     const upgrade = request.headers.get('Upgrade') || '';
     if (upgrade.toLowerCase() === 'websocket') {
       return proxyToKanban(request, env);
     }
 
+    // First: try to proxy to the Kanban container for non-API paths
+    // The Kanban container serves the React SPA, assets, etc.
+    const proxyResponse = await proxyToKanban(request, env);
+
+    // If the container responds with something useful, return it
+    if (proxyResponse.status !== 502) {
+      return proxyResponse;
+    }
+
+    // Otherwise, fall back to static assets (landing page)
     try {
       const asset = await env.ASSETS.fetch(request);
       if (asset.status === 200) return asset;
     } catch {
-      // fall through to proxy
+      // fall through to the 502 error
     }
 
-    return proxyToKanban(request, env);
+    // Return a helpful landing page when container is down
+    // (ASSETS should handle this since we have not_found_handling: single-page-application)
+    return proxyResponse;
   },
 
   async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
