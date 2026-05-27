@@ -17,6 +17,35 @@
     "ENVIRONMENT": "production"
   },
 
+  "containers": [
+    {
+      "class_name": "KanbanService",
+      "image": "./Dockerfile",
+      "port": 3484,
+      "instance_type": {
+        "vcpu": 2,
+        "memory_mib": 4096,
+        "disk_mb": 20480
+      }
+    }
+  ],
+
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "KANBAN_SERVICE",
+        "class_name": "KanbanService"
+      }
+    ]
+  },
+
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_classes": ["KanbanService"]
+    }
+  ],
+
   "d1_databases": [
     {
       "binding": "DB",

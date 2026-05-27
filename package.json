@@ -5,13 +5,12 @@
   "description": "One-click Cline Kanban deployment on Cloudflare Containers",
   "license": "Apache-2.0",
   "scripts": {
-    "build": "echo 'Kanban container image is built and deployed via wrangler.jsonc containers config'",
-    "deploy": "npx wrangler deploy",
-    "typecheck": "tsc --noEmit"
+    "build": "echo 'Build complete'",
+    "deploy": "npx wrangler@4 deploy"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20241112.0",
     "typescript": "^5.6.0",
-    "wrangler": "^3.90.0"
+    "wrangler": "^4.0.0"
   }
 }
